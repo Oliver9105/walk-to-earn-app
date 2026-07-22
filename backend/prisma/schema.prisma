@@ -1,0 +1,364 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  phoneNumber   String    @unique @map("phone_number")
+  fullName      String    @map("full_name")
+  email         String?   @unique
+  passwordHash  String    @map("password_hash")
+  avatarUrl     String?   @map("avatar_url")
+  dateOfBirth   DateTime? @map("date_of_birth")
+  kycVerified   Boolean   @default(false) @map("kyc_verified")
+  kycDocument   String?   @map("kyc_document")
+  twoFactorEnabled Boolean @default(false) @map("two_factor_enabled")
+
+  // Wallet
+  walletBalance Decimal   @default(0) @map("wallet_balance") @db.Decimal(10, 2)
+  totalEarned   Decimal   @default(0) @map("total_earned") @db.Decimal(10, 2)
+  totalDeposited Decimal @default(0) @map("total_deposited") @db.Decimal(10, 2)
+  totalWithdrawn Decimal @default(0) @map("total_withdrawn") @db.Decimal(10, 2)
+
+  // Fitness Stats
+  totalSteps    Int       @default(0) @map("total_steps")
+  currentStreak Int       @default(0) @map("current_streak")
+  longestStreak Int       @default(0) @map("longest_streak")
+  dailyGoal     Int       @default(10000) @map("daily_goal")
+
+  // Gamification
+  level         Int       @default(1)
+  xp            Int       @default(0)
+  rank          String    @default("Bronze") // Bronze, Silver, Gold, Platinum, Diamond
+
+  // Timestamps
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  lastActiveAt  DateTime? @map("last_active_at")
+
+  // Relations
+  transactions  WalletTransaction[]
+  enrollments   UserChallenge[]
+  achievements  UserAchievement[]
+  stepLogs      StepLog[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+model WalletTransaction {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  type          TransactionType
+  amount        Decimal  @db.Decimal(10, 2)
+  status        TransactionStatus @default(PENDING)
+
+  // M-Pesa specific
+  mpesaReceipt  String?  @map("mpesa_receipt")
+  phoneNumber   String?  @map("phone_number")
+  merchantRequestId String? @map("merchant_request_id")
+  checkoutRequestId String? @map("checkout_request_id")
+
+  // Metadata
+  description   String?
+  metadata      Json?
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([status])
+  @@index([mpesaReceipt])
+  @@map("wallet_transactions")
+}
+
+model Challenge {
+  id            String    @id @default(uuid())
+  title         String
+  description   String
+  imageUrl      String?   @map("image_url")
+
+  // Challenge Details
+  type          ChallengeType
+  difficulty    Difficulty
+  category      ChallengeCategory
+
+  // Requirements
+  targetSteps   Int       @map("target_steps")
+  targetDays    Int       @map("target_days")
+  minDailySteps Int       @default(3000) @map("min_daily_steps")
+
+  // Stakes
+  entryFee      Decimal   @map("entry_fee") @db.Decimal(10, 2)
+  guaranteeFee  Decimal   @map("guarantee_fee") @db.Decimal(10, 2)
+  totalPrizePool Decimal  @default(0) @map("total_prize_pool") @db.Decimal(10, 2)
+  maxParticipants Int     @map("max_participants")
+
+  // Rewards
+  baseMultiplier Decimal  @default(1.0) @map("base_multiplier") @db.Decimal(3, 2)
+  bonusMultiplier Decimal @default(0.0) @map("bonus_multiplier") @db.Decimal(3, 2)
+  milestoneRewards Json  @map("milestone_rewards")
+
+  // Schedule
+  startDate     DateTime  @map("start_date")
+  endDate       DateTime  @map("end_date")
+  registrationDeadline DateTime @map("registration_deadline")
+
+  // Status
+  status        ChallengeStatus @default(DRAFT)
+  featured      Boolean   @default(false)
+
+  // Timestamps
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  enrollments   UserChallenge[]
+
+  @@index([status, startDate])
+  @@index([featured])
+  @@map("challenges")
+}
+
+model UserChallenge {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  challengeId   String    @map("challenge_id")
+
+  // Progress
+  currentSteps  Int       @default(0) @map("current_steps")
+  currentDay    Int       @default(1) @map("current_day")
+  dailySteps    Int[]     @default([]) @map("daily_steps")
+  milestonesReached Int[] @default([]) @map("milestones_reached")
+
+  // Status
+  status        UserChallengeStatus @default(ACTIVE)
+  completedAt   DateTime? @map("completed_at")
+
+  // Rewards
+  earnedAmount  Decimal   @default(0) @map("earned_amount") @db.Decimal(10, 2)
+  bonusEarned   Decimal   @default(0) @map("bonus_earned") @db.Decimal(10, 2)
+
+  // Stakes
+  entryFeePaid  Decimal   @map("entry_fee_paid") @db.Decimal(10, 2)
+  guaranteePaid Decimal   @map("guarantee_paid") @db.Decimal(10, 2)
+
+  // Timestamps
+  enrolledAt    DateTime  @default(now()) @map("enrolled_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  lastStepLoggedAt DateTime? @map("last_step_logged_at")
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id])
+  challenge     Challenge @relation(fields: [challengeId], references: [id])
+
+  @@unique([userId, challengeId])
+  @@index([userId, status])
+  @@index([challengeId])
+  @@map("user_challenges")
+}
+
+model StepLog {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  userChallengeId String?  @map("user_challenge_id")
+
+  steps         Int
+  distance      Float?   // in meters
+  duration      Int?     // in seconds
+  calories      Float?
+
+  // Location data (optional)
+  latitude      Float?
+  longitude     Float?
+
+  // Device info
+  deviceId      String?  @map("device_id")
+  sensorData    Json?    @map("sensor_data")
+
+  // Fraud detection
+  confidence    Float    @default(1.0)
+  flagged       Boolean  @default(false)
+
+  loggedAt      DateTime @default(now()) @map("logged_at")
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, loggedAt])
+  @@index([userChallengeId])
+  @@map("step_logs")
+}
+
+model Achievement {
+  id            String    @id @default(uuid())
+  name          String    @unique
+  description   String
+  icon          String
+  category      AchievementCategory
+
+  // Requirements
+  requirementType RequirementType
+  requirementValue Int    @map("requirement_value")
+
+  // Reward
+  xpReward      Int       @default(0) @map("xp_reward")
+  coinReward    Decimal   @default(0) @map("coin_reward") @db.Decimal(10, 2)
+
+  // Display
+  badgeColor    String    @default("#FFD700") @map("badge_color")
+  rarity        Rarity    @default(COMMON)
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  achievementId String   @map("achievement_id")
+
+  progress      Int      @default(0)
+  completed     Boolean  @default(false)
+  completedAt   DateTime? @map("completed_at")
+
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id])
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+model Notification {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+
+  title         String
+  body          String
+  type          NotificationType
+  data          Json?
+
+  read          Boolean  @default(false)
+  readAt        DateTime? @map("read_at")
+
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, read])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// Enums
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  ENTRY_FEE
+  GUARANTEE_FEE
+  REWARD
+  BONUS
+  REFUND
+  PENALTY
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum ChallengeType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  SPECIAL
+  TEAM
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+  EXPERT
+  LEGENDARY
+}
+
+enum ChallengeCategory {
+  WALKING
+  RUNNING
+  HIKING
+  MARATHON
+  SPRINT
+  ENDURANCE
+}
+
+enum ChallengeStatus {
+  DRAFT
+  OPEN
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum UserChallengeStatus {
+  ACTIVE
+  COMPLETED
+  FAILED
+  FORFEITED
+  DISQUALIFIED
+}
+
+enum AchievementCategory {
+  STEPS
+  STREAK
+  CHALLENGES
+  SOCIAL
+  SPECIAL
+}
+
+enum RequirementType {
+  TOTAL_STEPS
+  DAILY_STEPS
+  STREAK_DAYS
+  CHALLENGES_COMPLETED
+  MONEY_EARNED
+  LEVEL_REACHED
+}
+
+enum Rarity {
+  COMMON
+  UNCOMMON
+  RARE
+  EPIC
+  LEGENDARY
+  MYTHIC
+}
+
+enum NotificationType {
+  TRANSACTION
+  CHALLENGE
+  ACHIEVEMENT
+  SYSTEM
+  REMINDER
+  REWARD
+}

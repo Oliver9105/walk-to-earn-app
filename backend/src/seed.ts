@@ -1,0 +1,292 @@
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+async function main() {
+  console.log('Seeding database...');
+
+  // Create default achievements
+  const achievements = [
+    {
+      name: 'First Steps',
+      description: 'Log your first 1,000 steps',
+      icon: 'footprints',
+      category: 'STEPS',
+      requirementType: 'TOTAL_STEPS',
+      requirementValue: 1000,
+      xpReward: 50,
+      coinReward: 10,
+      badgeColor: '#CD7F32',
+      rarity: 'COMMON',
+    },
+    {
+      name: 'Step Master',
+      description: 'Reach 100,000 total steps',
+      icon: 'trophy',
+      category: 'STEPS',
+      requirementType: 'TOTAL_STEPS',
+      requirementValue: 100000,
+      xpReward: 500,
+      coinReward: 100,
+      badgeColor: '#C0C0C0',
+      rarity: 'UNCOMMON',
+    },
+    {
+      name: 'Marathon Walker',
+      description: 'Reach 1,000,000 total steps',
+      icon: 'medal',
+      category: 'STEPS',
+      requirementType: 'TOTAL_STEPS',
+      requirementValue: 1000000,
+      xpReward: 5000,
+      coinReward: 1000,
+      badgeColor: '#FFD700',
+      rarity: 'LEGENDARY',
+    },
+    {
+      name: 'Week Warrior',
+      description: 'Maintain a 7-day streak',
+      icon: 'flame',
+      category: 'STREAK',
+      requirementType: 'STREAK_DAYS',
+      requirementValue: 7,
+      xpReward: 200,
+      coinReward: 50,
+      badgeColor: '#FF6B35',
+      rarity: 'UNCOMMON',
+    },
+    {
+      name: 'Month Master',
+      description: 'Maintain a 30-day streak',
+      icon: 'crown',
+      category: 'STREAK',
+      requirementType: 'STREAK_DAYS',
+      requirementValue: 30,
+      xpReward: 1000,
+      coinReward: 200,
+      badgeColor: '#9B59B6',
+      rarity: 'EPIC',
+    },
+    {
+      name: 'Challenge Rookie',
+      description: 'Complete your first challenge',
+      icon: 'star',
+      category: 'CHALLENGES',
+      requirementType: 'CHALLENGES_COMPLETED',
+      requirementValue: 1,
+      xpReward: 100,
+      coinReward: 25,
+      badgeColor: '#3498DB',
+      rarity: 'COMMON',
+    },
+    {
+      name: 'Challenge Champion',
+      description: 'Complete 10 challenges',
+      icon: 'award',
+      category: 'CHALLENGES',
+      requirementType: 'CHALLENGES_COMPLETED',
+      requirementValue: 10,
+      xpReward: 500,
+      coinReward: 150,
+      badgeColor: '#E74C3C',
+      rarity: 'RARE',
+    },
+    {
+      name: 'Big Earner',
+      description: 'Earn KES 5,000 from challenges',
+      icon: 'dollar-sign',
+      category: 'SPECIAL',
+      requirementType: 'MONEY_EARNED',
+      requirementValue: 5000,
+      xpReward: 1000,
+      coinReward: 500,
+      badgeColor: '#27AE60',
+      rarity: 'EPIC',
+    },
+    {
+      name: 'Level 10',
+      description: 'Reach level 10',
+      icon: 'zap',
+      category: 'SPECIAL',
+      requirementType: 'LEVEL_REACHED',
+      requirementValue: 10,
+      xpReward: 500,
+      coinReward: 200,
+      badgeColor: '#F39C12',
+      rarity: 'RARE',
+    },
+    {
+      name: 'Level 50',
+      description: 'Reach level 50',
+      icon: 'shield',
+      category: 'SPECIAL',
+      requirementType: 'LEVEL_REACHED',
+      requirementValue: 50,
+      xpReward: 5000,
+      coinReward: 2000,
+      badgeColor: '#E91E63',
+      rarity: 'MYTHIC',
+    },
+  ];
+
+  for (const achievement of achievements) {
+    await prisma.achievement.upsert({
+      where: { name: achievement.name },
+      update: achievement,
+      create: achievement,
+    });
+  }
+
+  // Create sample challenges
+  const now = new Date();
+  const challenges = [
+    {
+      title: 'Nairobi City Walk',
+      description: 'Explore the capital city on foot. Walk 50,000 steps over 7 days through Nairobi's vibrant neighborhoods.',
+      type: 'WEEKLY',
+      difficulty: 'EASY',
+      category: 'WALKING',
+      targetSteps: 50000,
+      targetDays: 7,
+      minDailySteps: 3000,
+      entryFee: 50,
+      guaranteeFee: 20,
+      maxParticipants: 500,
+      baseMultiplier: 1.5,
+      bonusMultiplier: 0.5,
+      milestoneRewards: JSON.stringify([
+        { percentage: 25, reward: 15 },
+        { percentage: 50, reward: 25 },
+        { percentage: 75, reward: 35 },
+        { percentage: 100, reward: 50 },
+      ]),
+      startDate: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+      endDate: new Date(now.getTime() + 8 * 24 * 60 * 60 * 1000),
+      registrationDeadline: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+      status: 'OPEN',
+      featured: true,
+    },
+    {
+      title: 'Mombasa Coastal Sprint',
+      description: 'Race along the beautiful Kenyan coast. Complete 100,000 steps in 14 days with breathtaking ocean views.',
+      type: 'WEEKLY',
+      difficulty: 'MEDIUM',
+      category: 'RUNNING',
+      targetSteps: 100000,
+      targetDays: 14,
+      minDailySteps: 4000,
+      entryFee: 100,
+      guaranteeFee: 50,
+      maxParticipants: 300,
+      baseMultiplier: 2.0,
+      bonusMultiplier: 0.75,
+      milestoneRewards: JSON.stringify([
+        { percentage: 25, reward: 40 },
+        { percentage: 50, reward: 70 },
+        { percentage: 75, reward: 100 },
+        { percentage: 100, reward: 150 },
+      ]),
+      startDate: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
+      endDate: new Date(now.getTime() + 17 * 24 * 60 * 60 * 1000),
+      registrationDeadline: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
+      status: 'OPEN',
+      featured: true,
+    },
+    {
+      title: 'Rift Valley Ridge Walk',
+      description: 'Conquer the highlands with this endurance challenge. 200,000 steps over 30 days through Kenya's most scenic routes.',
+      type: 'MONTHLY',
+      difficulty: 'HARD',
+      category: 'HIKING',
+      targetSteps: 200000,
+      targetDays: 30,
+      minDailySteps: 5000,
+      entryFee: 200,
+      guaranteeFee: 100,
+      maxParticipants: 200,
+      baseMultiplier: 2.5,
+      bonusMultiplier: 1.0,
+      milestoneRewards: JSON.stringify([
+        { percentage: 25, reward: 100 },
+        { percentage: 50, reward: 200 },
+        { percentage: 75, reward: 350 },
+        { percentage: 100, reward: 500 },
+      ]),
+      startDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+      endDate: new Date(now.getTime() + 37 * 24 * 60 * 60 * 1000),
+      registrationDeadline: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+      status: 'OPEN',
+      featured: true,
+    },
+    {
+      title: 'Daily 10K Sprint',
+      description: 'A quick daily challenge. Hit 10,000 steps every day for 7 days straight.',
+      type: 'DAILY',
+      difficulty: 'EASY',
+      category: 'SPRINT',
+      targetSteps: 70000,
+      targetDays: 7,
+      minDailySteps: 10000,
+      entryFee: 30,
+      guaranteeFee: 10,
+      maxParticipants: 1000,
+      baseMultiplier: 1.2,
+      bonusMultiplier: 0.3,
+      milestoneRewards: JSON.stringify([
+        { percentage: 50, reward: 15 },
+        { percentage: 100, reward: 30 },
+      ]),
+      startDate: new Date(now.getTime() + 12 * 60 * 60 * 1000),
+      endDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+      registrationDeadline: new Date(now.getTime() + 12 * 60 * 60 * 1000),
+      status: 'OPEN',
+      featured: false,
+    },
+    {
+      title: 'Mount Kenya Marathon',
+      description: 'The ultimate test of endurance. 500,000 steps in 60 days. Only for the brave.',
+      type: 'SPECIAL',
+      difficulty: 'LEGENDARY',
+      category: 'MARATHON',
+      targetSteps: 500000,
+      targetDays: 60,
+      minDailySteps: 6000,
+      entryFee: 500,
+      guaranteeFee: 250,
+      maxParticipants: 100,
+      baseMultiplier: 3.0,
+      bonusMultiplier: 1.5,
+      milestoneRewards: JSON.stringify([
+        { percentage: 20, reward: 200 },
+        { percentage: 40, reward: 400 },
+        { percentage: 60, reward: 700 },
+        { percentage: 80, reward: 1000 },
+        { percentage: 100, reward: 1500 },
+      ]),
+      startDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
+      endDate: new Date(now.getTime() + 74 * 24 * 60 * 60 * 1000),
+      registrationDeadline: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
+      status: 'OPEN',
+      featured: true,
+    },
+  ];
+
+  for (const challenge of challenges) {
+    await prisma.challenge.upsert({
+      where: { title: challenge.title },
+      update: challenge,
+      create: challenge,
+    });
+  }
+
+  console.log('Database seeded successfully!');
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
